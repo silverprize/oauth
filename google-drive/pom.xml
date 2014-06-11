@@ -38,7 +38,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.example.client.ExampleClient</mainClass>
+                                    <mainClass>com.silverprize.GDriveClient</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
