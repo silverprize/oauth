@@ -12,7 +12,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.IOUtils;
-import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.ChildList;
@@ -52,30 +51,28 @@ public class GDriveClient {
         }
     }
 
-    /** Authorizes the installed application to access user's protected data. */
+    /**
+     * Authorizes the installed application to access user's protected data.<br/>
+     * <a href="https://code.google.com/p/google-api-java-client/source/browse/drive-cmdline-sample/src/main/java/com/google/api/services/samples/drive/cmdline/DriveSample.java?repo=samples#87">google-api-java-client DriveSample</a>
+     **/
     private static Credential authorize() throws Exception {
         // load client secrets
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
                 new InputStreamReader(GDriveClient.class.getResourceAsStream("/client_secrets.json")));
-        if (clientSecrets.getDetails().getClientId().startsWith("Enter")
-                || clientSecrets.getDetails().getClientSecret().startsWith("Enter ")) {
-            System.out.println(
-                    "Enter Client ID and Secret from https://code.google.com/apis/console/?api=drive "
-                            + "into client_secrets.json");
-            System.exit(1);
-        }
+
         // set up authorization code flow
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 httpTransport, JSON_FACTORY, clientSecrets, DriveScopes.all())
-                .setDataStoreFactory(new FileDataStoreFactory(DATA_STORE_DIR))
+//                .setDataStoreFactory(new FileDataStoreFactory(DATA_STORE_DIR)) // save to local permanently.
                 .build();
         // authorize
         return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("silver");
     }
 
     /**
-     * Download a file's content.
+     * Download a file's content.<br/>
+     * <a href="https://code.google.com/p/google-api-java-client/source/browse/drive-cmdline-sample/src/main/java/com/google/api/services/samples/drive/cmdline/DriveSample.java?repo=samples#172">google-api-java-client DriveSample</a><br/>
      *
      * @param service Drive API service instance.
      * @param gdFile Drive File instance.
