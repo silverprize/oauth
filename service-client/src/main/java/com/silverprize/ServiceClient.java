@@ -29,9 +29,6 @@ public class ServiceClient {
 
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
-    /** Directory to store user credentials. */
-    private static final java.io.File DATA_STORE_DIR = new java.io.File(System.getProperty("user.home"), ".store/google_service");
-
     public static void main(String args[]) throws Exception {
         String userId = "silver";
         ServiceProvider serviceProvider = ServiceProvider.GOOGLE;
