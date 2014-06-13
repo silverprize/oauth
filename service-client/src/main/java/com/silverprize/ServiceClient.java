@@ -1,10 +1,9 @@
 package com.silverprize;
 
+import com.dropbox.core.DbxClient;
+import com.dropbox.core.DbxEntry;
+import com.dropbox.core.DbxRequestConfig;
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpResponse;
@@ -13,18 +12,18 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.IOUtils;
 import com.google.api.services.drive.Drive;
-import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.ChildList;
 import com.google.api.services.drive.model.ChildReference;
+import com.silverprize.oauth2.Authorizer;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.Locale;
 
-public class GDriveClient {
+public class ServiceClient {
 
     private static final String FOLDER = "application/vnd.google-apps.folder";
 
@@ -34,41 +33,40 @@ public class GDriveClient {
     private static final java.io.File DATA_STORE_DIR = new java.io.File(System.getProperty("user.home"), ".store/google_service");
 
     public static void main(String args[]) throws Exception {
-        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        Credential credential = authorize();
-        Drive drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName("API Project").build();
-        ChildList childList = drive.children().list("root").execute();
-        for (ChildReference ref : childList.getItems()) {
-            com.google.api.services.drive.model.File gdFile = drive.files().get(ref.getId()).execute();
-            if (!FOLDER.equals(gdFile.getMimeType())) {
-                if (!Boolean.TRUE.equals(gdFile.getExplicitlyTrashed())) {
-                    File downloadFile = downloadFile(drive, gdFile);
-                    if (downloadFile != null && downloadFile.exists()) {
-                        System.out.println("Success to download.");
+        String userId = "silver";
+        ServiceProvider serviceProvider = ServiceProvider.GOOGLE;
+        Credential credential = Authorizer.authorize(userId, serviceProvider);
+
+        switch (serviceProvider) {
+            case GOOGLE:
+                HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+                Drive drive = new Drive.Builder(httpTransport, JSON_FACTORY, credential).setApplicationName("API Project").build();
+                ChildList childList = drive.children().list("root").execute();
+                for (ChildReference ref : childList.getItems()) {
+                    com.google.api.services.drive.model.File gdFile = drive.files().get(ref.getId()).execute();
+                    if (!FOLDER.equals(gdFile.getMimeType())) {
+                        if (!Boolean.TRUE.equals(gdFile.getExplicitlyTrashed())) {
+                            File downloadFile = downloadFile(drive, gdFile);
+                            if (downloadFile != null && downloadFile.exists()) {
+                                System.out.println("Success to download.");
+                            }
+                        }
                     }
                 }
-            }
+                break;
+
+            case DROPBOX:
+                DbxRequestConfig dbxRequestConfig = new DbxRequestConfig(userId, Locale.getDefault().toString());
+                DbxClient dbxClient = new DbxClient(dbxRequestConfig, credential.getAccessToken());
+                DbxEntry.WithChildren children = dbxClient.getMetadataWithChildren("/");
+                for (DbxEntry entry : children.children) {
+                    System.out.println(entry);
+                }
+                break;
         }
     }
 
-    /**
-     * Authorizes the installed application to access user's protected data.<br/>
-     * <a href="https://code.google.com/p/google-api-java-client/source/browse/drive-cmdline-sample/src/main/java/com/google/api/services/samples/drive/cmdline/DriveSample.java?repo=samples#87">google-api-java-client DriveSample</a>
-     **/
-    private static Credential authorize() throws Exception {
-        // load client secrets
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
-                new InputStreamReader(GDriveClient.class.getResourceAsStream("/client_secrets.json")));
 
-        // set up authorization code flow
-        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                httpTransport, JSON_FACTORY, clientSecrets, DriveScopes.all())
-//                .setDataStoreFactory(new FileDataStoreFactory(DATA_STORE_DIR)) // save to local permanently.
-                .build();
-        // authorize
-        return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("silver");
-    }
 
     /**
      * Download a file's content.<br/>
@@ -100,5 +98,4 @@ public class GDriveClient {
             return null;
         }
     }
-
 }
